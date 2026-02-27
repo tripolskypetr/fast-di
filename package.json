@@ -1,6 +1,6 @@
 {
   "name": "di-kit",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "readme": "README.md",
   "description": "Minimal ioc container which allow circular dependency injection",
   "private": false,
@@ -48,6 +48,11 @@
     "import": "./build/index.mjs",
     "default": "./build/index.cjs"
   },
+  "files": [
+    "build",
+    "types.d.ts",
+    "README.md"
+  ],
   "licenses": [
     {
       "type": "MIT",
