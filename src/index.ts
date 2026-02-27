@@ -1,79 +1,88 @@
-const BEFORE_INIT_LIFECYCLE = [];
+type Key = string | symbol;
+
+const BEFORE_INIT_LIFECYCLE: ((
+    name: string,
+    override: <T = object>(key: Key, instance: T) => void
+) => void)[] = [];
+
+const INIT_SERVICE_FN = Symbol('init-service-fn');
+const INIT_CALL_FN = Symbol('init-call-fn');
 
 export const createActivator = (namespace = "unknown") => {
 
-    const INIT_SERVICE_FN = Symbol('init-service-fn');
-    const INIT_CALL_FN = Symbol('init-call-fn');
+    const accessorMap = new Map<Key, InstanceAccessor>();
+    const factoryMap = new Map<Key, () => unknown>();
+    const instanceMap = new Map<Key, unknown>();
 
-    const accessorMap = new Map();
-    const factoryMap = new Map();
-    const instanceMap = new Map();
-
-    const singleshot = (run) => {
+    const singleshot = (run: () => void) => {
         let isInitComplete = false;
-        let runValue = undefined;
         return () => {
             if (isInitComplete) {
-                return runValue;
+                return;
             }
             isInitComplete = true;
-            return runValue = run();
-        }
+            run();
+        };
     };
 
-    const getInstance = (name) => {
+    const getInstance = (name: Key): unknown => {
         if (instanceMap.has(name)) {
             return instanceMap.get(name);
         }
         if (factoryMap.has(name)) {
-            const instance = factoryMap.get(name)();
+            const instance = factoryMap.get(name)!();
             instanceMap.set(name, instance);
             return instance;
         }
         console.warn(`di-kit namespace=${namespace} name=${String(name)} not provided`);
         return {};
-    }
-    
-    const createService = (name, self) => 
+    };
+
+    const createService = (name: Key, self: object) =>
         singleshot(() => {
-            Object.setPrototypeOf(self, getInstance(name));
+            Object.setPrototypeOf(self, <object>getInstance(name));
         });
 
-    const createInitializer = (self) => 
+    const createInitializer = (self: any) =>
         singleshot(() => {
             self.init && self.init();
         });
 
     class InstanceAccessor {
-        constructor(name) {
+        public readonly name: Key;
+        [INIT_SERVICE_FN]: () => void;
+        [INIT_CALL_FN]: () => void;
+
+        constructor(name: Key) {
             this.name = name;
             this[INIT_SERVICE_FN] = createService(name, this);
             this[INIT_CALL_FN] = createInitializer(this);
         }
     }
-    
-    const provide = (name, ctor) => {
+
+    const provide = <T = object>(name: Key, ctor: T | (() => T)): void => {
         if (typeof ctor === "function") {
-            factoryMap.set(name, ctor);
+            factoryMap.set(name, ctor as () => unknown);
             return;
         }
         instanceMap.set(name, ctor);
     };
-    
-    const inject = (name) => accessorMap.has(name)
-        ? accessorMap.get(name)
-        : accessorMap.set(name, new InstanceAccessor(name)).get(name);
-    
-    const override = (name, target) => {
+
+    const inject = <T = object>(name: Key): T =>
+        (accessorMap.has(name)
+            ? accessorMap.get(name)
+            : accessorMap.set(name, new InstanceAccessor(name)).get(name)) as T;
+
+    const override = <T = object>(name: Key, target: T): void => {
         {
             const instance = accessorMap.get(name);
-            instance && Object.setPrototypeOf(instance, target);
+            instance && Object.setPrototypeOf(instance, <object>target);
         }
         factoryMap.set(name, () => target);
         instanceMap.set(name, target);
     };
 
-    const init = () => {
+    const init = (): void => {
         for (const fn of BEFORE_INIT_LIFECYCLE) {
             fn(namespace, override);
         }
@@ -85,7 +94,9 @@ export const createActivator = (namespace = "unknown") => {
         }
     };
 
-    const beforeInit = (fn) => {
+    const beforeInit = (
+        fn: (name: string, override: <T = object>(key: Key, instance: T) => void) => void
+    ): (() => void) => {
         BEFORE_INIT_LIFECYCLE.push(fn);
         return () => {
             const index = BEFORE_INIT_LIFECYCLE.indexOf(fn);
@@ -94,7 +105,7 @@ export const createActivator = (namespace = "unknown") => {
             }
         };
     };
-    
+
     return {
         InstanceAccessor,
         provide,
@@ -103,6 +114,6 @@ export const createActivator = (namespace = "unknown") => {
         override,
         beforeInit,
     };
-}
+};
 
 export const { InstanceAccessor, provide, inject, init, override, beforeInit } = createActivator('root');

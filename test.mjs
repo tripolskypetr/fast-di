@@ -1,4 +1,4 @@
-import { inject, provide, init } from './index.mjs';
+import { inject, provide, init } from './build/index.mjs';
 
 const TYPES = {
     serviceFoo: Symbol('serviceFoo'),

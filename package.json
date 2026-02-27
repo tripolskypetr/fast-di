@@ -1,11 +1,12 @@
 {
   "name": "di-kit",
-  "version": "1.0.18",
+  "version": "1.1.0",
   "readme": "README.md",
   "description": "Minimal ioc container which allow circular dependency injection",
   "private": false,
   "scripts": {
-    "test": "node ./test.mjs"
+    "build": "rollup -c",
+    "test": "npm run build && node ./test.mjs"
   },
   "author": {
     "name": "Petr Tripolsky",
@@ -29,14 +30,23 @@
   "bugs": {
     "url": "https://github.com/react-declarative/react-declarative/issues"
   },
-  "type": "module",
-  "types": "index.d.ts",
-  "module": "index.mjs",
+  "devDependencies": {
+    "tslib": "2.7.0",
+    "@rollup/plugin-typescript": "11.1.6",
+    "@types/node": "22.9.0",
+    "rollup": "3.29.4",
+    "rollup-plugin-dts": "6.1.1",
+    "rollup-plugin-peer-deps-external": "2.2.4"
+  },
+  "main": "build/index.cjs",
+  "module": "build/index.mjs",
+  "source": "src/index.ts",
+  "types": "./types.d.ts",
   "exports": {
-    "require": "./index.mjs",
-    "types": "./index.d.ts",
-    "import": "./index.mjs",
-    "default": "./index.mjs"
+    "require": "./build/index.cjs",
+    "types": "./types.d.ts",
+    "import": "./build/index.mjs",
+    "default": "./build/index.cjs"
   },
   "licenses": [
     {
